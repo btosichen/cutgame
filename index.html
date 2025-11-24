@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Prime Number Shooter 3D</title>
+    <title>Math Hunter 3D - Crossbow Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bangers&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
@@ -11,12 +11,13 @@
         body {
             margin: 0;
             overflow: hidden;
-            background-color: #1a1a1a;
+            background-color: #87CEEB; /* 天空藍 */
             font-family: 'Bangers', 'Noto Sans TC', sans-serif;
             user-select: none;
             -webkit-user-select: none;
             touch-action: none; 
             overscroll-behavior: none;
+            cursor: crosshair; /* 準心鼠標 */
         }
 
         #canvas-container {
@@ -26,7 +27,6 @@
             width: 100%;
             height: 100%;
             z-index: 1;
-            touch-action: none;
         }
 
         #ui-layer {
@@ -40,57 +40,62 @@
             text-shadow: 2px 2px 0 #000;
         }
 
+        /* 準心 */
+        #crosshair {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 40px;
+            height: 40px;
+            transform: translate(-50%, -50%);
+            border: 2px solid rgba(255, 255, 255, 0.8);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+            transition: transform 0.1s;
+        }
+        #crosshair::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 6px;
+            height: 6px;
+            background: #ff3333;
+            transform: translate(-50%, -50%);
+            border-radius: 50%;
+            box-shadow: 0 0 4px #ff0000;
+        }
+
         /* HUD */
-        #score-display {
+        .hud-text {
             position: absolute;
-            top: 10px;
-            left: 20px;
-            color: #ffd700;
-            font-size: 1.8rem;
-        }
-
-        #best-score-display {
-            position: absolute;
-            top: 50px;
-            left: 20px;
-            font-size: 1.2rem;
-            color: #aaa;
-        }
-
-        #lives-display {
-            position: absolute;
-            top: 10px;
-            right: 20px;
-            text-align: right;
-            font-size: 1.5rem;
             color: white;
+            font-size: 1.5rem;
         }
 
-        #lives-icons {
-            color: #ff4444;
-            letter-spacing: 5px;
+        #score-display { top: 20px; left: 20px; color: #ffd700; font-size: 2rem; }
+        #level-display { top: 60px; left: 20px; color: #00ffcc; }
+        #best-score-display { top: 90px; left: 20px; font-size: 1rem; color: #ddd; }
+        
+        #lives-display { 
+            top: 20px; 
+            right: 20px; 
+            text-align: right; 
+            font-size: 2rem;
         }
-
-        #timer-display {
-            position: absolute;
-            top: 10px;
-            width: 100%;
-            text-align: center;
-            font-size: 4rem;
-            display: none;
-            color: #fff;
-        }
-
+        
         #message-display {
             position: absolute;
             top: 30%;
             width: 100%;
             text-align: center;
-            font-size: 3rem;
+            font-size: 4rem;
             font-weight: bold;
             opacity: 0;
             transition: opacity 0.3s;
             pointer-events: none;
+            text-shadow: 0 0 10px rgba(0,0,0,0.5);
         }
 
         /* Menu Screens */
@@ -100,7 +105,8 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0, 0, 0, 0.85);
+            background: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(5px);
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -109,78 +115,53 @@
             z-index: 20;
         }
 
-        .hidden {
-            display: none !important;
-        }
+        .hidden { display: none !important; }
 
         h1 {
             font-size: 4rem;
-            color: #6bff89;
+            color: #ff9966;
             margin-bottom: 10px;
-            margin-top: 0;
             text-align: center;
-            line-height: 1.2;
-            text-shadow: 0 0 10px #00ff00;
+            text-shadow: 3px 3px 0 #5c3a21;
         }
 
         .menu-btn {
-            font-family: 'Bangers', 'Noto Sans TC', sans-serif;
-            font-size: 1.8rem;
+            font-family: 'Noto Sans TC', sans-serif;
+            font-size: 1.5rem;
             padding: 15px 40px;
             margin: 10px;
             width: 280px;
-            background: linear-gradient(45deg, #2193b0, #6dd5ed);
-            border: none;
-            color: white;
+            background: #5c3a21; /* 木頭色 */
+            border: 3px solid #8b5a2b;
+            color: #f0e68c;
             cursor: pointer;
-            border-radius: 50px;
-            transition: transform 0.1s, filter 0.1s;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
-            text-shadow: 1px 1px 0 #000;
+            border-radius: 10px;
+            transition: transform 0.1s;
+            box-shadow: 0 5px 10px rgba(0,0,0,0.5);
         }
 
-        .menu-btn:hover {
-            transform: scale(1.05);
-            filter: brightness(1.2);
-        }
-
-        .menu-btn:active {
-            transform: scale(0.95);
-        }
+        .menu-btn:hover { transform: scale(1.05); background: #6d4c33; }
+        .menu-btn:active { transform: scale(0.95); }
 
         .instruction-box {
-            background: rgba(255, 255, 255, 0.1);
+            background: rgba(92, 58, 33, 0.9);
             padding: 20px 30px;
             border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
+            border: 2px solid #8b5a2b;
             margin-top: 20px;
             max-width: 600px;
-            color: #ddd;
+            color: #f0e68c;
             font-family: 'Noto Sans TC', sans-serif;
-            text-align: left;
+            font-size: 1.1rem;
             line-height: 1.6;
-            font-size: 1rem;
         }
         
-        .instruction-box h3 {
-            color: #ffd700;
-            margin: 0 0 10px 0;
-            text-align: center;
-            font-size: 1.3rem;
-        }
-        
-        .highlight {
-            color: #6bff89;
-            font-weight: bold;
-        }
-        
-        .bad {
-            color: #ff4444;
-            font-weight: bold;
-        }
+        .highlight { color: #00ff00; font-weight: bold; }
+        .safe { color: #87CEEB; font-weight: bold; }
+        .bad { color: #ff4444; font-weight: bold; }
 
     </style>
-    <!-- Import Three.js from CDN -->
+    <!-- Import Three.js -->
     <script type="importmap">
         {
             "imports": {
@@ -193,32 +174,36 @@
 <body>
 
     <div id="canvas-container"></div>
+    <div id="crosshair"></div>
 
     <div id="ui-layer">
         <div id="score-display">分數: <span id="score-val">0</span></div>
+        <div id="level-display">關卡: <span id="level-val">1</span></div>
         <div id="best-score-display">最高分: <span id="best-val">0</span></div>
-        <div id="lives-display">生命值<br><span id="lives-icons">❤️❤️❤️</span></div>
-        <div id="timer-display">60</div>
-        <div id="message-display">PRIME! +5</div>
+        <div id="lives-display">❤️ <span id="lives-val">3</span></div>
+        <div id="message-display">HEADSHOT!</div>
     </div>
 
     <!-- Main Menu -->
     <div id="start-screen" class="screen">
-        <h1>MATH SHOOTER<br><span style="font-size: 2rem; color: #fff;">(質數射擊手)</span></h1>
+        <h1>森林數學獵人<br><span style="font-size: 1.5rem; color: #fff;">Crossbow Edition</span></h1>
         
-        <button class="menu-btn" onclick="gameApp.startGame('classic')">開始遊戲 (Start)</button>
-        <button class="menu-btn" onclick="gameApp.startGame('time')">計時挑戰 (Time Attack)</button>
+        <button class="menu-btn" onclick="gameApp.startGame()">開始狩獵</button>
         
         <div class="instruction-box">
-            <h3>🎯 遊戲玩法說明</h3>
+            <h3>🏹 十字弓獵人指南</h3>
             <ul>
-                <li><strong>操作方式：</strong>滑動滑鼠或手指控制下方砲台角度，<strong>點擊</strong>發射子彈。</li>
-                <li><strong>目標：</strong>水果會帶著數字從上方掉落。</li>
+                <li><strong>任務：</strong>手持Y型十字弓，辨識森林中的數字動物。</li>
                 <li><strong>規則：</strong>
                     <ul>
-                        <li>射中 <span class="highlight">質數 (2, 3, 5, 7, 11...)</span>：<span class="highlight">加分</span>！</li>
-                        <li>射中 <span class="bad">非質數 (4, 6, 8, 9, 10...)</span>：<span class="bad">扣分並扣血</span>！</li>
-                        <li>水果掉到底部：不扣分，但會失去射擊機會。</li>
+                        <li><span class="highlight">質數 (2, 3, 5, 7...)</span>：必須狩獵！(射擊得分)</li>
+                        <li><span class="safe">非質數 (4, 6, 8, 9...)</span>：讓牠通過！(不要射擊，安全)</li>
+                    </ul>
+                </li>
+                <li><strong>扣血/失敗條件：</strong>
+                    <ul>
+                        <li><span class="bad">漏掉質數</span>：讓質數動物衝到面前 (任務失敗扣血)</li>
+                        <li><span class="bad">濫殺無辜</span>：射中非質數 (扣分)</li>
                     </ul>
                 </li>
             </ul>
@@ -227,18 +212,16 @@
 
     <!-- Game Over Screen -->
     <div id="game-over-screen" class="screen hidden">
-        <h1 style="color: #ff4444; text-shadow: none;">GAME OVER</h1>
-        <h2 style="color:white; font-size: 3rem;">最終分數: <span id="final-score">0</span></h2>
-        <button class="menu-btn" onclick="gameApp.restartGame()">再玩一次</button>
+        <h1 style="color: #ff4444;">狩獵結束</h1>
+        <h2 style="color:white; font-size: 2.5rem;">最終分數: <span id="final-score">0</span></h2>
+        <button class="menu-btn" onclick="gameApp.restartGame()">再次挑戰</button>
         <button class="menu-btn" onclick="gameApp.showMenu()">回主選單</button>
     </div>
 
 <script type="module">
 import * as THREE from 'three';
 
-/**
- * 質數檢查工具
- */
+// 質數表快取
 function isPrime(num) {
     if (num <= 1) return false;
     if (num <= 3) return true;
@@ -249,266 +232,383 @@ function isPrime(num) {
     return true;
 }
 
+// 音效管理
 class SoundManager {
     constructor() {
         this.ctx = new (window.AudioContext || window.webkitAudioContext)();
         this.masterGain = this.ctx.createGain();
-        this.masterGain.gain.value = 0.3;
+        this.masterGain.gain.value = 0.4;
         this.masterGain.connect(this.ctx.destination);
-        this.enabled = true;
     }
 
     playShoot() {
-        if (!this.enabled || this.ctx.state === 'suspended') return;
+        if (this.ctx.state === 'suspended') this.ctx.resume();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(40, this.ctx.currentTime + 0.1);
+        
+        // 十字弓的聲音比較短促有力
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(800, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.1);
+        
         gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+        
         osc.connect(gain);
         gain.connect(this.masterGain);
         osc.start();
         osc.stop(this.ctx.currentTime + 0.15);
     }
 
+    playHit() {
+        if (this.ctx.state === 'suspended') return;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(100, this.ctx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(50, this.ctx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(this.masterGain);
+        osc.start();
+        osc.stop(this.ctx.currentTime + 0.2);
+    }
+
     playCorrect() {
-        if (!this.enabled || this.ctx.state === 'suspended') return;
+        if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(600, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(1200, this.ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+        osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+        osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.1); // G5
+        gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
         osc.connect(gain);
         gain.connect(this.masterGain);
         osc.start();
         osc.stop(this.ctx.currentTime + 0.3);
     }
-
+    
     playWrong() {
-        if (!this.enabled || this.ctx.state === 'suspended') return;
+        if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(100, this.ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(50, this.ctx.currentTime + 0.3);
-        gain.gain.setValueAtTime(0.5, this.ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+        osc.frequency.setValueAtTime(150, this.ctx.currentTime);
+        osc.frequency.linearRampToValueAtTime(100, this.ctx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+        gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.2);
         osc.connect(gain);
         gain.connect(this.masterGain);
         osc.start();
-        osc.stop(this.ctx.currentTime + 0.4);
+        osc.stop(this.ctx.currentTime + 0.3);
     }
 }
 
-class ParticleSystem {
-    constructor(scene) {
+// 玩家的十字弓
+class Crossbow {
+    constructor(scene, camera) {
         this.scene = scene;
-        this.particles = [];
-        this.geo = new THREE.BoxGeometry(0.15, 0.15, 0.15);
-    }
-
-    emit(position, color, count = 10) {
-        const mat = new THREE.MeshPhongMaterial({ color: color, shininess: 100 });
+        this.camera = camera;
+        this.group = new THREE.Group();
         
-        for(let i=0; i<count; i++) {
-            const mesh = new THREE.Mesh(this.geo, mat);
-            mesh.position.copy(position);
-            mesh.userData = {
-                velocity: new THREE.Vector3(
-                    (Math.random() - 0.5) * 10,
-                    (Math.random() - 0.5) * 10,
-                    (Math.random() - 0.5) * 10
-                ),
-                life: 1.0,
-                rotSpeed: new THREE.Vector3(Math.random(), Math.random(), Math.random())
-            };
-            this.scene.add(mesh);
-            this.particles.push(mesh);
-        }
+        // 材質
+        const woodMat = new THREE.MeshPhongMaterial({ color: 0x5D4037 }); // 深木色
+        const metalMat = new THREE.MeshPhongMaterial({ color: 0x607D8B, shininess: 100 }); // 金屬色
+        const stringMat = new THREE.LineBasicMaterial({ color: 0xEEEEEE });
+
+        // 1. 槍托 (Stock)
+        const stockGeo = new THREE.BoxGeometry(0.15, 0.1, 0.8);
+        const stock = new THREE.Mesh(stockGeo, woodMat);
+        stock.position.z = 0.2;
+        this.group.add(stock);
+        
+        // 2. 弓臂 (Limbs) - Y字形
+        const limbGeo = new THREE.BoxGeometry(0.08, 0.05, 0.6);
+        const leftLimb = new THREE.Mesh(limbGeo, woodMat);
+        leftLimb.position.set(-0.25, 0, -0.2);
+        leftLimb.rotation.y = -Math.PI / 4; // Y shape left
+        this.group.add(leftLimb);
+
+        const rightLimb = new THREE.Mesh(limbGeo, woodMat);
+        rightLimb.position.set(0.25, 0, -0.2);
+        rightLimb.rotation.y = Math.PI / 4; // Y shape right
+        this.group.add(rightLimb);
+
+        // 3. 弦 (String)
+        const points = [
+            new THREE.Vector3(-0.45, 0, -0.4), // Left tip
+            new THREE.Vector3(0, 0, 0.4),      // Trigger point
+            new THREE.Vector3(0.45, 0, -0.4)   // Right tip
+        ];
+        const stringGeo = new THREE.BufferGeometry().setFromPoints(points);
+        this.stringLine = new THREE.Line(stringGeo, stringMat);
+        this.group.add(this.stringLine);
+
+        // 4. 瞄準器/軌道
+        const railGeo = new THREE.BoxGeometry(0.05, 0.02, 0.8);
+        const rail = new THREE.Mesh(railGeo, metalMat);
+        rail.position.y = 0.06;
+        stock.add(rail);
+
+        // 設置到場景中
+        this.scene.add(this.group);
+        
+        this.isFiring = false;
+        this.fireTime = 0;
     }
 
-    update(dt) {
-        for (let i = this.particles.length - 1; i >= 0; i--) {
-            const p = this.particles[i];
-            p.position.add(p.userData.velocity.clone().multiplyScalar(dt));
-            p.rotation.x += p.userData.rotSpeed.x * 0.1;
-            p.rotation.y += p.userData.rotSpeed.y * 0.1;
-            p.userData.life -= dt * 2; // Fade fast
-            p.scale.setScalar(p.userData.life);
+    update(mouse, time) {
+        // 呼吸效果
+        const breathe = Math.sin(time * 1.5) * 0.003;
+        
+        // 跟隨滑鼠移動
+        const targetX = mouse.x * 0.6;
+        const targetY = mouse.y * 0.6;
+        
+        // 轉換到相機空間 (模擬第一人稱持槍)
+        // 位置在右下方
+        const vector = new THREE.Vector3(0.25 + targetX * 0.1, -0.25 + targetY * 0.1 + breathe, -0.5);
+        vector.applyQuaternion(this.camera.quaternion);
+        vector.add(this.camera.position);
+        
+        this.group.position.copy(vector);
+        
+        // 旋轉跟隨相機，並稍微指向準心
+        this.group.quaternion.copy(this.camera.quaternion);
+        // 微調角度讓槍口對準螢幕中心
+        this.group.rotateX(0.05); 
+        this.group.rotateY(-0.05); 
 
-            if (p.userData.life <= 0) {
-                this.scene.remove(p);
-                this.particles.splice(i, 1);
+        // 發射動畫 (後座力)
+        if (this.isFiring) {
+            const progress = (time - this.fireTime) * 15;
+            if (progress < 1) {
+                // 後座力
+                this.group.translateZ(progress * 0.1);
+            } else if (progress < 3) {
+                // 回歸
+                this.group.translateZ(0.1 - (progress-1) * 0.05);
+            } else {
+                this.isFiring = false;
             }
         }
     }
-}
-
-class Shooter {
-    constructor(scene) {
-        this.scene = scene;
-        this.group = new THREE.Group();
-        this.angle = 0;
-
-        // Base
-        const baseGeo = new THREE.CylinderGeometry(1, 1, 0.5, 32);
-        const baseMat = new THREE.MeshPhongMaterial({ color: 0x555555 });
-        const base = new THREE.Mesh(baseGeo, baseMat);
-        base.rotation.x = Math.PI / 2;
-        this.group.add(base);
-
-        // Turret
-        this.turret = new THREE.Group();
-        
-        const barrelGeo = new THREE.CylinderGeometry(0.2, 0.3, 2, 16);
-        const barrelMat = new THREE.MeshPhongMaterial({ color: 0x22aaff });
-        const barrel = new THREE.Mesh(barrelGeo, barrelMat);
-        barrel.position.y = 1; // Offset so it rotates from bottom
-        this.turret.add(barrel);
-        
-        this.group.add(this.turret);
-        
-        // Position at bottom center
-        this.group.position.set(0, -12, 0);
-        this.scene.add(this.group);
-    }
-
-    update(mouseXNorm) {
-        // Map mouse X (-1 to 1) to angle (-90 deg to 90 deg approx)
-        // -1 -> 90 deg (Left), 1 -> -90 deg (Right) in ThreeJS Z-rotation terms
-        // We want to rotate around Z axis since camera is looking at XY plane
-        
-        // Clamp logic
-        const maxAngle = Math.PI / 2.2; // Slightly less than 90 degrees
-        this.angle = -mouseXNorm * maxAngle; 
-        this.turret.rotation.z = this.angle;
-    }
-
-    getTipPosition() {
-        // Calculate where the bullet spawns (tip of barrel)
-        const vec = new THREE.Vector3(0, 2, 0);
-        vec.applyEuler(this.turret.rotation);
-        vec.add(this.group.position);
-        return vec;
-    }
-
-    getDirection() {
-        const vec = new THREE.Vector3(0, 1, 0);
-        vec.applyEuler(this.turret.rotation);
-        return vec.normalize();
+    
+    trigger() {
+        this.isFiring = true;
+        this.fireTime = performance.now() / 1000;
     }
 }
 
-class Bullet {
+// 弩箭
+class Bolt {
     constructor(scene, position, direction) {
         this.scene = scene;
         this.active = true;
-        this.speed = 25;
-        this.direction = direction;
+        this.speed = 80; // 弩箭速度比弓箭快
+        this.direction = direction.normalize();
         
-        const geo = new THREE.SphereGeometry(0.3, 8, 8);
-        const mat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
-        this.mesh = new THREE.Mesh(geo, mat);
-        this.mesh.position.copy(position);
-        this.scene.add(this.mesh);
+        this.group = new THREE.Group();
+        this.group.position.copy(position);
+        
+        // 箭桿 (較短)
+        const shaftGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.4, 8);
+        const shaftMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+        shaft.rotation.x = Math.PI / 2;
+        this.group.add(shaft);
+        
+        // 箭頭
+        const tipGeo = new THREE.ConeGeometry(0.03, 0.1, 8);
+        const tipMat = new THREE.MeshPhongMaterial({ color: 0xC0C0C0 }); // Fixed: Silver hex code
+        const tip = new THREE.Mesh(tipGeo, tipMat);
+        tip.rotation.x = Math.PI / 2;
+        tip.position.z = 0.25;
+        this.group.add(tip);
+        
+        // 尾羽 (螢光色方便看軌跡)
+        const fletchGeo = new THREE.BoxGeometry(0.005, 0.08, 0.1);
+        const fletchMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
+        const fletch = new THREE.Mesh(fletchGeo, fletchMat);
+        fletch.position.z = -0.15;
+        this.group.add(fletch);
+        
+        this.group.lookAt(this.group.position.clone().add(this.direction));
+        this.scene.add(this.group);
     }
 
     update(dt) {
         if (!this.active) return;
-        this.mesh.position.add(this.direction.clone().multiplyScalar(this.speed * dt));
+        this.group.position.add(this.direction.clone().multiplyScalar(this.speed * dt));
         
-        // Bounds check
-        if (this.mesh.position.y > 15 || this.mesh.position.x < -15 || this.mesh.position.x > 15) {
+        if (this.group.position.length() > 100) {
             this.destroy();
         }
     }
 
     destroy() {
         this.active = false;
-        this.scene.remove(this.mesh);
+        this.scene.remove(this.group);
     }
 }
 
-class FallingObject {
-    constructor(scene) {
+// 動物工廠
+class Animal {
+    constructor(scene, level) {
         this.scene = scene;
         this.active = true;
         this.group = new THREE.Group();
         
-        // Random number 2-99
         this.number = Math.floor(Math.random() * 98) + 2;
         this.isPrime = isPrime(this.number);
-
-        // Create Fruit Mesh
-        const types = ['watermelon', 'apple', 'orange'];
-        const type = types[Math.floor(Math.random() * types.length)];
-        let color = 0xff0000;
-        let geo;
-
-        if (type === 'watermelon') {
-            color = 0x2e8b57;
-            geo = new THREE.SphereGeometry(1, 16, 16);
-        } else if (type === 'apple') {
-            color = 0xff4444;
-            geo = new THREE.SphereGeometry(0.8, 16, 16);
-        } else {
-            color = 0xffa500;
-            geo = new THREE.SphereGeometry(0.9, 16, 16);
-        }
-
-        const mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: color }));
-        this.group.add(mesh);
-
-        // Create Number Text Sprite
-        const textTexture = this.createNumberTexture(this.number);
-        const spriteMat = new THREE.SpriteMaterial({ map: textTexture });
+        
+        // 動物類型：野豬、兔子、狐狸 (無保育類)
+        const types = ['boar', 'rabbit', 'fox'];
+        this.type = types[Math.floor(Math.random() * types.length)];
+        
+        this.buildModel();
+        
+        // 數字顯示 (Billboard)
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        // 質數用亮綠色，非質數用白色 (或稍微灰一點)，不要太明顯提示，考驗心算
+        ctx.fillStyle = this.isPrime ? '#32CD32' : '#FFFFFF'; 
+        ctx.font = 'bold 160px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.strokeStyle = 'black';
+        ctx.lineWidth = 12;
+        ctx.lineJoin = 'round';
+        ctx.strokeText(this.number, 128, 128);
+        ctx.fillText(this.number, 128, 128);
+        
+        const tex = new THREE.CanvasTexture(canvas);
+        const spriteMat = new THREE.SpriteMaterial({ map: tex });
         const sprite = new THREE.Sprite(spriteMat);
+        sprite.position.y = 2.0;
         sprite.scale.set(1.5, 1.5, 1);
-        sprite.position.z = 1.1; // In front of fruit
         this.group.add(sprite);
 
-        // Position
-        const xPos = (Math.random() - 0.5) * 16; // Wider range
-        this.group.position.set(xPos, 15, 0); // Start at top
+        // 生成位置
+        const startZ = -40 - Math.random() * 20;
+        const startX = (Math.random() - 0.5) * 25; // 範圍大一點
+        this.group.position.set(startX, 0, startZ);
+        this.group.lookAt(0, 0, 0); 
         
-        // Physics
-        this.speed = 3 + Math.random() * 4; // Downward speed
-        this.rotSpeed = (Math.random() - 0.5) * 2;
-
+        // 速度
+        const baseSpeed = this.type === 'rabbit' ? 8 : (this.type === 'fox' ? 7 : 5);
+        this.speed = baseSpeed + (level * 0.6); 
+        this.animTime = Math.random();
+        
         this.scene.add(this.group);
     }
 
-    createNumberTexture(num) {
-        const canvas = document.createElement('canvas');
-        canvas.width = 128;
-        canvas.height = 128;
-        const ctx = canvas.getContext('2d');
-        ctx.font = 'bold 80px Arial';
-        ctx.fillStyle = 'white';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.shadowColor = 'black';
-        ctx.shadowBlur = 4;
-        ctx.fillText(num, 64, 64);
+    buildModel() {
+        let mainColor;
         
-        const tex = new THREE.CanvasTexture(canvas);
-        return tex;
+        if (this.type === 'boar') {
+            // --- 野豬 (深棕色) ---
+            mainColor = 0x5D4037;
+            const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 1.8), new THREE.MeshPhongMaterial({color: mainColor}));
+            body.position.y = 0.8;
+            this.group.add(body);
+            
+            const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 1), new THREE.MeshPhongMaterial({color: mainColor}));
+            head.position.set(0, 1.0, 1.2);
+            this.group.add(head);
+            
+            const tusk = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.3, 8), new THREE.MeshPhongMaterial({color: 0xffffff}));
+            tusk.rotation.x = Math.PI/4;
+            tusk.position.set(0.25, 0.8, 1.6);
+            this.group.add(tusk);
+            
+            // 腿
+            const legGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
+            [[0.4, 0.3, 0.6], [-0.4, 0.3, 0.6], [0.4, 0.3, -0.6], [-0.4, 0.3, -0.6]].forEach(pos => {
+                const leg = new THREE.Mesh(legGeo, new THREE.MeshPhongMaterial({color: mainColor}));
+                leg.position.set(...pos);
+                this.group.add(leg);
+            });
+
+        } else if (this.type === 'rabbit') {
+            // --- 野兔 (灰白色) ---
+            mainColor = 0xDCDCDC;
+            const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshPhongMaterial({color: mainColor}));
+            body.scale.set(1, 0.8, 1.2);
+            body.position.y = 0.5;
+            this.group.add(body);
+            
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshPhongMaterial({color: mainColor}));
+            head.position.set(0, 0.8, 0.6);
+            this.group.add(head);
+            
+            // 長耳朵
+            const earGeo = new THREE.CapsuleGeometry(0.08, 0.5, 4, 8);
+            const ear1 = new THREE.Mesh(earGeo, new THREE.MeshPhongMaterial({color: mainColor}));
+            ear1.position.set(0.15, 1.2, 0.5);
+            ear1.rotation.x = -0.2;
+            this.group.add(ear1);
+            const ear2 = ear1.clone();
+            ear2.position.set(-0.15, 1.2, 0.5);
+            this.group.add(ear2);
+            
+            // 小尾巴
+            const tail = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshPhongMaterial({color: 0xffffff}));
+            tail.position.set(0, 0.4, -0.6);
+            this.group.add(tail);
+
+        } else {
+            // --- 狐狸 (橘色) ---
+            mainColor = 0xFF8C00; // DarkOrange
+            const whiteMat = new THREE.MeshPhongMaterial({color: 0xFFFFFF});
+            
+            const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 1.2), new THREE.MeshPhongMaterial({color: mainColor}));
+            body.position.y = 0.6;
+            this.group.add(body);
+            
+            const head = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.8, 16), new THREE.MeshPhongMaterial({color: mainColor}));
+            head.rotation.x = -Math.PI/2;
+            head.position.set(0, 1.0, 0.8);
+            this.group.add(head);
+            
+            // 大尾巴
+            const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.8, 4, 8), new THREE.MeshPhongMaterial({color: mainColor}));
+            tail.rotation.x = Math.PI/3;
+            tail.position.set(0, 0.8, -0.8);
+            this.group.add(tail);
+            const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.2), whiteMat);
+            tailTip.position.set(0, 1.15, -1.05);
+            this.group.add(tailTip);
+        }
     }
 
     update(dt) {
         if (!this.active) return;
+        
+        // 移動：跑向 (0,0,0)
+        const dir = this.group.position.clone().negate().normalize(); 
+        dir.y = 0;
+        
+        this.group.position.add(dir.multiplyScalar(this.speed * dt));
+        this.group.lookAt(0, 0, 0); 
+        
+        // 跑步動畫 (上下跳動)
+        this.animTime += dt * 12;
+        const bounce = Math.abs(Math.sin(this.animTime)) * (this.type === 'rabbit' ? 0.4 : 0.15);
+        this.group.position.y = bounce;
 
-        this.group.position.y -= this.speed * dt;
-        this.group.rotation.z += this.rotSpeed * dt;
+        // 距離檢測
+        const dist = this.group.position.length();
 
-        if (this.group.position.y < -15) {
-            this.active = false;
-            this.scene.remove(this.group);
+        // 到達玩家面前 (Z 約為 0, 實際上靠近相機)
+        if (dist < 3.0) {
+            return "reached_player";
         }
+        return "running";
     }
 
     destroy() {
@@ -522,31 +622,32 @@ class GameApp {
         this.initThree();
         this.clock = new THREE.Clock();
         this.audio = new SoundManager();
-        this.particles = new ParticleSystem(this.scene);
-        this.shooter = new Shooter(this.scene);
-
-        this.bullets = [];
-        this.targets = [];
+        
+        this.crossbow = new Crossbow(this.scene, this.camera);
+        
+        this.bolts = [];
+        this.animals = [];
         
         this.score = 0;
         this.lives = 3;
-        this.bestScore = localStorage.getItem('primeShooterBest') || 0;
-        this.mode = 'menu'; 
+        this.level = 1;
+        this.bestScore = localStorage.getItem('mathHunterBest') || 0;
         this.spawnTimer = 0;
+        
+        this.mouse = new THREE.Vector2();
+        this.raycaster = new THREE.Raycaster();
 
         this.ui = {
             score: document.getElementById('score-val'),
+            level: document.getElementById('level-val'),
             best: document.getElementById('best-val'),
-            lives: document.getElementById('lives-icons'),
-            livesContainer: document.getElementById('lives-display'),
-            timer: document.getElementById('timer-display'),
+            lives: document.getElementById('lives-val'),
             message: document.getElementById('message-display'),
             startScreen: document.getElementById('start-screen'),
             gameOverScreen: document.getElementById('game-over-screen'),
             finalScore: document.getElementById('final-score')
         };
         
-        this.mouseNormX = 0;
         this.setupInput();
         this.updateUI();
         this.animate();
@@ -555,21 +656,56 @@ class GameApp {
     initThree() {
         this.container = document.getElementById('canvas-container');
         this.scene = new THREE.Scene();
+        this.scene.fog = new THREE.Fog(0x87CEEB, 15, 50);
         
-        this.camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
-        this.camera.position.set(0, 0, 25); // Further back
-        this.camera.lookAt(0, 0, 0);
+        // 地板
+        const groundGeo = new THREE.PlaneGeometry(200, 200);
+        const groundMat = new THREE.MeshPhongMaterial({ color: 0x4CAF50 }); 
+        const ground = new THREE.Mesh(groundGeo, groundMat);
+        ground.rotation.x = -Math.PI / 2;
+        this.scene.add(ground);
+        
+        // 樹木 (裝飾)
+        for(let i=0; i<30; i++) {
+            const tree = new THREE.Group();
+            const trunk = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.4, 0.6, 3), 
+                new THREE.MeshPhongMaterial({color: 0x795548})
+            );
+            trunk.position.y = 1.5;
+            
+            const leaves = new THREE.Mesh(
+                new THREE.ConeGeometry(2.5, 5, 8),
+                new THREE.MeshPhongMaterial({color: 0x2E7D32})
+            );
+            leaves.position.y = 4;
+            
+            tree.add(trunk);
+            tree.add(leaves);
+            
+            const angle = Math.random() * Math.PI * 2;
+            const dist = 25 + Math.random() * 40;
+            tree.position.set(Math.cos(angle)*dist, 0, Math.sin(angle)*dist);
+            this.scene.add(tree);
+        }
 
+        // Camera
+        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        this.camera.position.set(0, 1.6, 0); 
+        this.camera.lookAt(0, 1.6, -10);
+
+        // Renderer
         this.renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
         this.renderer.setSize(window.innerWidth, window.innerHeight);
         this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.container.appendChild(this.renderer.domElement);
 
-        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        // Lights
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.7);
         this.scene.add(ambientLight);
 
-        const dirLight = new THREE.DirectionalLight(0xffffff, 1);
-        dirLight.position.set(5, 10, 7);
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(5, 15, 10);
         this.scene.add(dirLight);
     }
 
@@ -580,67 +716,60 @@ class GameApp {
             this.renderer.setSize(window.innerWidth, window.innerHeight);
         });
 
-        const handleMove = (clientX) => {
-            // Map 0->width to -1->1
-            this.mouseNormX = (clientX / window.innerWidth) * 2 - 1;
+        const handleMove = (x, y) => {
+            this.mouse.x = (x / window.innerWidth) * 2 - 1;
+            this.mouse.y = -(y / window.innerHeight) * 2 + 1;
         };
 
         const handleShoot = () => {
             if (this.mode !== 'playing') return;
-            this.audio.ctx.resume();
             
-            const pos = this.shooter.getTipPosition();
-            const dir = this.shooter.getDirection();
-            
-            this.bullets.push(new Bullet(this.scene, pos, dir));
             this.audio.playShoot();
+            this.crossbow.trigger();
+            
+            // 計算射擊方向
+            this.raycaster.setFromCamera(this.mouse, this.camera);
+            const direction = this.raycaster.ray.direction.clone();
+            
+            // 弩箭起點
+            const startPos = this.camera.position.clone().add(direction.multiplyScalar(0.5));
+            startPos.y -= 0.1;
+            
+            this.bolts.push(new Bolt(this.scene, startPos, this.raycaster.ray.direction));
         };
 
-        // Mouse
-        document.addEventListener('mousemove', e => handleMove(e.clientX));
+        document.addEventListener('mousemove', e => handleMove(e.clientX, e.clientY));
         document.addEventListener('mousedown', handleShoot);
-
+        
         // Touch
         this.container.addEventListener('touchmove', e => {
             e.preventDefault();
-            handleMove(e.touches[0].clientX);
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
         }, {passive: false});
         this.container.addEventListener('touchstart', e => {
             e.preventDefault();
-            handleMove(e.touches[0].clientX);
+            handleMove(e.touches[0].clientX, e.touches[0].clientY);
             handleShoot();
         }, {passive: false});
     }
 
-    startGame(mode) {
+    startGame() {
         this.mode = 'playing';
-        this.gameModeType = mode;
         this.score = 0;
         this.lives = 3;
-        this.gameTime = 0;
+        this.level = 1;
         this.spawnTimer = 0;
         
-        // Cleanup
-        this.targets.forEach(t => t.destroy());
-        this.bullets.forEach(b => b.destroy());
-        this.targets = [];
-        this.bullets = [];
+        this.animals.forEach(a => a.destroy());
+        this.bolts.forEach(b => b.destroy());
+        this.animals = [];
+        this.bolts = [];
 
         this.ui.startScreen.classList.add('hidden');
         this.ui.gameOverScreen.classList.add('hidden');
-        
-        if (mode === 'time') {
-            this.timeLeft = 60;
-            this.ui.timer.style.display = 'block';
-            this.ui.livesContainer.style.display = 'none';
-        } else {
-            this.ui.timer.style.display = 'none';
-            this.ui.livesContainer.style.display = 'block';
-        }
-
         this.updateUI();
     }
-
+    
     showMenu() {
         this.mode = 'menu';
         this.ui.startScreen.classList.remove('hidden');
@@ -648,7 +777,7 @@ class GameApp {
     }
 
     restartGame() {
-        this.startGame(this.gameModeType);
+        this.startGame();
     }
 
     showMessage(text, color) {
@@ -658,60 +787,72 @@ class GameApp {
         el.style.opacity = 1;
         el.style.top = '30%';
         
-        // Float up animation reset
         setTimeout(() => {
-            el.style.top = '20%';
+            el.style.top = '25%';
             el.style.opacity = 0;
-        }, 500);
+        }, 800);
     }
 
     checkCollisions() {
-        // Bullet vs Target
-        for (let i = this.bullets.length - 1; i >= 0; i--) {
-            const b = this.bullets[i];
+        for (let i = this.bolts.length - 1; i >= 0; i--) {
+            const bolt = this.bolts[i];
             let hit = false;
-
-            for (let j = this.targets.length - 1; j >= 0; j--) {
-                const t = this.targets[j];
+            
+            for (let j = this.animals.length - 1; j >= 0; j--) {
+                const animal = this.animals[j];
+                const dist = bolt.group.position.distanceTo(animal.group.position);
                 
-                // Simple Sphere Collision (dist < radius1 + radius2)
-                const dist = b.mesh.position.distanceTo(t.group.position);
-                if (dist < 1.5) {
-                    // Hit!
-                    this.handleHit(t);
-                    t.destroy();
-                    this.targets.splice(j, 1);
+                // 碰撞判定
+                if (dist < 1.8) {
+                    this.handleHit(animal);
+                    animal.destroy();
+                    this.animals.splice(j, 1);
                     hit = true;
                     break;
                 }
             }
-
+            
             if (hit) {
-                b.destroy();
-                this.bullets.splice(i, 1);
+                bolt.destroy();
+                this.bolts.splice(i, 1);
             }
         }
     }
 
-    handleHit(target) {
-        if (target.isPrime) {
-            // GOOD!
-            this.score += 10; // Higher score for shooting
+    handleHit(animal) {
+        if (animal.isPrime) {
+            // 正確射中質數 -> 加分
+            this.score += 10;
             this.audio.playCorrect();
-            this.particles.emit(target.group.position, 0x00ff00, 20);
-            this.showMessage(`質數! ${target.number}`, '#6bff89');
-        } else {
-            // BAD!
-            this.audio.playWrong();
-            this.particles.emit(target.group.position, 0xff0000, 20);
-            this.showMessage(`非質數! ${target.number}`, '#ff4444');
+            this.showMessage(`狩獵成功! ${animal.number}`, '#00ff00');
             
-            if (this.gameModeType === 'classic') {
-                this.lives--;
-                if (this.lives <= 0) this.gameOver();
-            } else {
-                this.score = Math.max(0, this.score - 20); // Penalty for Time Attack
+            if (Math.floor(this.score / 100) + 1 > this.level) {
+                this.level++;
+                this.showMessage(`LEVEL UP! ${this.level}`, '#00ffff');
             }
+        } else {
+            // 射中非質數 -> 濫殺無辜，扣分 (不扣血，但扣分作為懲罰)
+            this.score = Math.max(0, this.score - 5);
+            this.audio.playWrong();
+            this.showMessage(`不要射非質數! -5`, '#FFA500');
+        }
+        this.updateUI();
+    }
+    
+    handleAnimalReachPlayer(animal) {
+        if (animal.isPrime) {
+            // 質數跑掉了 -> 任務失敗 (漏掉獵物)，扣血
+            this.lives--;
+            this.audio.playHit();
+            this.renderer.domElement.style.filter = 'brightness(3) sepia(1) hue-rotate(-50deg)';
+            setTimeout(() => { this.renderer.domElement.style.filter = 'none'; }, 100);
+            
+            this.showMessage(`漏掉獵物! ${animal.number}`, '#ff0000');
+            if (this.lives <= 0) this.gameOver();
+        } else {
+            // 非質數跑掉了 -> 安全通過，沒事
+            // 可以加一點音效表示"安全"
+            this.showMessage(`安全通過`, '#87CEEB');
         }
         this.updateUI();
     }
@@ -720,7 +861,7 @@ class GameApp {
         this.mode = 'gameover';
         if (this.score > this.bestScore) {
             this.bestScore = this.score;
-            localStorage.setItem('primeShooterBest', this.bestScore);
+            localStorage.setItem('mathHunterBest', this.bestScore);
         }
         this.ui.finalScore.innerText = this.score;
         this.ui.gameOverScreen.classList.remove('hidden');
@@ -729,60 +870,45 @@ class GameApp {
 
     updateUI() {
         this.ui.score.innerText = this.score;
+        this.ui.level.innerText = this.level;
         this.ui.best.innerText = this.bestScore;
-        
-        let livesStr = '';
-        for(let i=0; i<this.lives; i++) livesStr += '❤️ ';
-        this.ui.lives.innerText = livesStr;
+        this.ui.lives.innerText = this.lives;
     }
 
     animate() {
         requestAnimationFrame(this.animate.bind(this));
         
         const dt = Math.min(this.clock.getDelta(), 0.1);
+        const time = this.clock.getElapsedTime();
         
-        // Update Shooter Angle
-        this.shooter.update(this.mouseNormX);
+        this.crossbow.update(this.mouse, time);
 
         if (this.mode === 'playing') {
             this.spawnTimer -= dt;
 
-            // Spawn Logic
             if (this.spawnTimer <= 0) {
-                this.targets.push(new FallingObject(this.scene));
-                // Decrease spawn time based on score/time
-                const difficulty = Math.max(0.5, 2.0 - (this.score * 0.02));
-                this.spawnTimer = difficulty;
+                this.animals.push(new Animal(this.scene, this.level));
+                const spawnInterval = Math.max(0.6, 2.0 - (this.level * 0.15));
+                this.spawnTimer = spawnInterval;
             }
 
-            // Update Bullets
-            for (let i = this.bullets.length - 1; i >= 0; i--) {
-                this.bullets[i].update(dt);
-                if (!this.bullets[i].active) {
-                    this.bullets.splice(i, 1);
-                }
+            for (let i = this.bolts.length - 1; i >= 0; i--) {
+                this.bolts[i].update(dt);
+                if (!this.bolts[i].active) this.bolts.splice(i, 1);
             }
 
-            // Update Targets (Falling)
-            for (let i = this.targets.length - 1; i >= 0; i--) {
-                this.targets[i].update(dt);
-                if (!this.targets[i].active) {
-                    // Fell off screen - No penalty logic requested, just remove
-                    this.targets.splice(i, 1);
+            for (let i = this.animals.length - 1; i >= 0; i--) {
+                const status = this.animals[i].update(dt);
+                if (status === "reached_player") {
+                    this.handleAnimalReachPlayer(this.animals[i]);
+                    this.animals[i].destroy();
+                    this.animals.splice(i, 1);
                 }
             }
 
             this.checkCollisions();
-            
-            // Time Attack Logic
-            if (this.gameModeType === 'time') {
-                this.timeLeft -= dt;
-                this.ui.timer.innerText = Math.ceil(this.timeLeft);
-                if (this.timeLeft <= 0) this.gameOver();
-            }
         }
 
-        this.particles.update(dt);
         this.renderer.render(this.scene, this.camera);
     }
 }
