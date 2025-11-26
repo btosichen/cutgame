@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, maximum-scale=1.0">
-    <title>Math Hunter 3D - Crossbow Edition</title>
+    <title>Math Hunter 3D - Sky & Ground Edition</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Bangers&display=swap');
         @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap');
@@ -186,23 +186,24 @@
 
     <!-- Main Menu -->
     <div id="start-screen" class="screen">
-        <h1>森林數學獵人<br><span style="font-size: 1.5rem; color: #fff;">Crossbow Edition</span></h1>
+        <h1>森林數學獵人<br><span style="font-size: 1.5rem; color: #87CEEB;">Sky & Ground</span></h1>
         
         <button class="menu-btn" onclick="gameApp.startGame()">開始狩獵</button>
         
         <div class="instruction-box">
-            <h3>🏹 十字弓獵人指南</h3>
+            <h3>🏹 獵人指南 (陸空聯合作戰)</h3>
             <ul>
-                <li><strong>任務：</strong>手持Y型十字弓，辨識森林中的數字動物。</li>
+                <li><strong>任務：</strong>使用十字弓，防守來自森林與天空的數字動物。</li>
                 <li><strong>規則：</strong>
                     <ul>
                         <li><span class="highlight">質數 (2, 3, 5, 7...)</span>：必須狩獵！(射擊得分)</li>
                         <li><span class="safe">非質數 (4, 6, 8, 9...)</span>：讓牠通過！(不要射擊，安全)</li>
                     </ul>
                 </li>
-                <li><strong>扣血/失敗條件：</strong>
+                <li><strong>注意天空：</strong>鳥類也會攜帶數字，請抬頭觀察！</li>
+                <li><strong>失敗條件：</strong>
                     <ul>
-                        <li><span class="bad">漏掉質數</span>：讓質數動物衝到面前 (任務失敗扣血)</li>
+                        <li><span class="bad">漏掉質數</span>：讓質數動物跑到面前或飛過頭頂 (扣血)</li>
                         <li><span class="bad">濫殺無辜</span>：射中非質數 (扣分)</li>
                     </ul>
                 </li>
@@ -212,7 +213,7 @@
 
     <!-- Game Over Screen -->
     <div id="game-over-screen" class="screen hidden">
-        <h1 style="color: #ff4444;">狩獵結束</h1>
+        <h1 style="color: #ff4444;">防線失守</h1>
         <h2 style="color:white; font-size: 2.5rem;">最終分數: <span id="final-score">0</span></h2>
         <button class="menu-btn" onclick="gameApp.restartGame()">再次挑戰</button>
         <button class="menu-btn" onclick="gameApp.showMenu()">回主選單</button>
@@ -245,22 +246,18 @@ class SoundManager {
         if (this.ctx.state === 'suspended') this.ctx.resume();
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
-        
-        // 十字弓的聲音比較短促有力
         osc.type = 'sawtooth';
         osc.frequency.setValueAtTime(800, this.ctx.currentTime);
         osc.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.1);
-        
         gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
         gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.1);
-        
         osc.connect(gain);
         gain.connect(this.masterGain);
         osc.start();
         osc.stop(this.ctx.currentTime + 0.15);
     }
 
-    playHit() {
+    playHit() { // 玩家受傷
         if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -275,13 +272,13 @@ class SoundManager {
         osc.stop(this.ctx.currentTime + 0.2);
     }
 
-    playCorrect() {
+    playCorrect() { // 射中質數
         if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
-        osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.1); // G5
+        osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); 
+        osc.frequency.setValueAtTime(783.99, this.ctx.currentTime + 0.1); 
         gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
         gain.gain.linearRampToValueAtTime(0, this.ctx.currentTime + 0.3);
         osc.connect(gain);
@@ -290,7 +287,7 @@ class SoundManager {
         osc.stop(this.ctx.currentTime + 0.3);
     }
     
-    playWrong() {
+    playWrong() { // 射錯
         if (this.ctx.state === 'suspended') return;
         const osc = this.ctx.createOscillator();
         const gain = this.ctx.createGain();
@@ -313,46 +310,44 @@ class Crossbow {
         this.camera = camera;
         this.group = new THREE.Group();
         
-        // 材質
-        const woodMat = new THREE.MeshPhongMaterial({ color: 0x5D4037 }); // 深木色
-        const metalMat = new THREE.MeshPhongMaterial({ color: 0x607D8B, shininess: 100 }); // 金屬色
+        const woodMat = new THREE.MeshPhongMaterial({ color: 0x5D4037 });
+        const metalMat = new THREE.MeshPhongMaterial({ color: 0x607D8B, shininess: 100 });
         const stringMat = new THREE.LineBasicMaterial({ color: 0xEEEEEE });
 
-        // 1. 槍托 (Stock)
+        // 槍托
         const stockGeo = new THREE.BoxGeometry(0.15, 0.1, 0.8);
         const stock = new THREE.Mesh(stockGeo, woodMat);
         stock.position.z = 0.2;
         this.group.add(stock);
         
-        // 2. 弓臂 (Limbs) - Y字形
+        // 弓臂
         const limbGeo = new THREE.BoxGeometry(0.08, 0.05, 0.6);
         const leftLimb = new THREE.Mesh(limbGeo, woodMat);
         leftLimb.position.set(-0.25, 0, -0.2);
-        leftLimb.rotation.y = -Math.PI / 4; // Y shape left
+        leftLimb.rotation.y = -Math.PI / 4;
         this.group.add(leftLimb);
 
         const rightLimb = new THREE.Mesh(limbGeo, woodMat);
         rightLimb.position.set(0.25, 0, -0.2);
-        rightLimb.rotation.y = Math.PI / 4; // Y shape right
+        rightLimb.rotation.y = Math.PI / 4;
         this.group.add(rightLimb);
 
-        // 3. 弦 (String)
+        // 弦
         const points = [
-            new THREE.Vector3(-0.45, 0, -0.4), // Left tip
-            new THREE.Vector3(0, 0, 0.4),      // Trigger point
-            new THREE.Vector3(0.45, 0, -0.4)   // Right tip
+            new THREE.Vector3(-0.45, 0, -0.4),
+            new THREE.Vector3(0, 0, 0.4),     
+            new THREE.Vector3(0.45, 0, -0.4) 
         ];
         const stringGeo = new THREE.BufferGeometry().setFromPoints(points);
         this.stringLine = new THREE.Line(stringGeo, stringMat);
         this.group.add(this.stringLine);
 
-        // 4. 瞄準器/軌道
+        // 軌道
         const railGeo = new THREE.BoxGeometry(0.05, 0.02, 0.8);
         const rail = new THREE.Mesh(railGeo, metalMat);
         rail.position.y = 0.06;
         stock.add(rail);
 
-        // 設置到場景中
         this.scene.add(this.group);
         
         this.isFiring = false;
@@ -363,33 +358,26 @@ class Crossbow {
         // 呼吸效果
         const breathe = Math.sin(time * 1.5) * 0.003;
         
-        // 跟隨滑鼠移動
-        const targetX = mouse.x * 0.6;
-        const targetY = mouse.y * 0.6;
+        // 跟隨滑鼠
+        const targetX = mouse.x * 0.8; // 增加水平移動範圍
+        const targetY = mouse.y * 0.8; // 增加垂直移動範圍
         
-        // 轉換到相機空間 (模擬第一人稱持槍)
-        // 位置在右下方
-        const vector = new THREE.Vector3(0.25 + targetX * 0.1, -0.25 + targetY * 0.1 + breathe, -0.5);
+        // 轉換到相機空間
+        const vector = new THREE.Vector3(0.3 + targetX * 0.15, -0.3 + targetY * 0.15 + breathe, -0.5);
         vector.applyQuaternion(this.camera.quaternion);
         vector.add(this.camera.position);
         
         this.group.position.copy(vector);
-        
-        // 旋轉跟隨相機，並稍微指向準心
         this.group.quaternion.copy(this.camera.quaternion);
-        // 微調角度讓槍口對準螢幕中心
-        this.group.rotateX(0.05); 
+        this.group.rotateX(0.08); // 稍微抬高槍口
         this.group.rotateY(-0.05); 
 
-        // 發射動畫 (後座力)
         if (this.isFiring) {
             const progress = (time - this.fireTime) * 15;
             if (progress < 1) {
-                // 後座力
-                this.group.translateZ(progress * 0.1);
+                this.group.translateZ(progress * 0.15); // 後座力
             } else if (progress < 3) {
-                // 回歸
-                this.group.translateZ(0.1 - (progress-1) * 0.05);
+                this.group.translateZ(0.15 - (progress-1) * 0.075);
             } else {
                 this.isFiring = false;
             }
@@ -407,28 +395,25 @@ class Bolt {
     constructor(scene, position, direction) {
         this.scene = scene;
         this.active = true;
-        this.speed = 80; // 弩箭速度比弓箭快
+        this.speed = 100;
         this.direction = direction.normalize();
         
         this.group = new THREE.Group();
         this.group.position.copy(position);
         
-        // 箭桿 (較短)
         const shaftGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.4, 8);
         const shaftMat = new THREE.MeshPhongMaterial({ color: 0x333333 });
         const shaft = new THREE.Mesh(shaftGeo, shaftMat);
         shaft.rotation.x = Math.PI / 2;
         this.group.add(shaft);
         
-        // 箭頭
         const tipGeo = new THREE.ConeGeometry(0.03, 0.1, 8);
-        const tipMat = new THREE.MeshPhongMaterial({ color: 0xC0C0C0 }); // Fixed: Silver hex code
+        const tipMat = new THREE.MeshPhongMaterial({ color: 0xC0C0C0 });
         const tip = new THREE.Mesh(tipGeo, tipMat);
         tip.rotation.x = Math.PI / 2;
         tip.position.z = 0.25;
         this.group.add(tip);
         
-        // 尾羽 (螢光色方便看軌跡)
         const fletchGeo = new THREE.BoxGeometry(0.005, 0.08, 0.1);
         const fletchMat = new THREE.MeshBasicMaterial({ color: 0x00ff00 });
         const fletch = new THREE.Mesh(fletchGeo, fletchMat);
@@ -442,8 +427,7 @@ class Bolt {
     update(dt) {
         if (!this.active) return;
         this.group.position.add(this.direction.clone().multiplyScalar(this.speed * dt));
-        
-        if (this.group.position.length() > 100) {
+        if (this.group.position.length() > 150) {
             this.destroy();
         }
     }
@@ -454,28 +438,64 @@ class Bolt {
     }
 }
 
-// 動物工廠
+// 動物工廠 (整合地面與飛行)
 class Animal {
     constructor(scene, level) {
         this.scene = scene;
         this.active = true;
         this.group = new THREE.Group();
+        this.wings = []; // 儲存翅膀以便動畫使用
         
         this.number = Math.floor(Math.random() * 98) + 2;
         this.isPrime = isPrime(this.number);
         
-        // 動物類型：野豬、兔子、狐狸 (無保育類)
-        const types = ['boar', 'rabbit', 'fox'];
-        this.type = types[Math.floor(Math.random() * types.length)];
-        
-        this.buildModel();
+        // 決定是地面還是天空 (35% 機率是天空)
+        this.domain = Math.random() > 0.65 ? 'sky' : 'ground';
+
+        if (this.domain === 'ground') {
+            const types = ['boar', 'rabbit', 'fox'];
+            this.type = types[Math.floor(Math.random() * types.length)];
+            this.buildGroundModel();
+            
+            // 生成位置 (地面)
+            const startZ = -40 - Math.random() * 20;
+            const startX = (Math.random() - 0.5) * 30;
+            this.group.position.set(startX, 0, startZ);
+            
+            // 地面基礎速度
+            const baseSpeed = this.type === 'rabbit' ? 8 : (this.type === 'fox' ? 7 : 5);
+            this.speed = baseSpeed + (level * 0.5);
+
+        } else {
+            const types = ['eagle', 'owl'];
+            this.type = types[Math.floor(Math.random() * types.length)];
+            this.buildSkyModel();
+
+            // 生成位置 (天空)
+            const startZ = -50 - Math.random() * 20; // 飛得比較遠開始
+            const startX = (Math.random() - 0.5) * 40; // 範圍更廣
+            const startY = 6 + Math.random() * 8; // 高度 6~14
+            this.group.position.set(startX, startY, startZ);
+
+            // 天空基礎速度 (通常比地面快)
+            this.speed = 10 + (level * 0.8);
+        }
         
         // 數字顯示 (Billboard)
+        this.createNumberBillboard();
+        
+        this.group.lookAt(0, this.domain === 'sky' ? 5 : 0, 0); // 地面看地板，天空看空中某點
+        
+        this.animTime = Math.random();
+        this.scene.add(this.group);
+    }
+
+    createNumberBillboard() {
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
-        // 質數用亮綠色，非質數用白色 (或稍微灰一點)，不要太明顯提示，考驗心算
+        
         ctx.fillStyle = this.isPrime ? '#32CD32' : '#FFFFFF'; 
         ctx.font = 'bold 160px Arial';
         ctx.textAlign = 'center';
@@ -489,131 +509,162 @@ class Animal {
         const tex = new THREE.CanvasTexture(canvas);
         const spriteMat = new THREE.SpriteMaterial({ map: tex });
         const sprite = new THREE.Sprite(spriteMat);
-        sprite.position.y = 2.0;
+        
+        // 調整數字位置
+        if (this.domain === 'sky') {
+            sprite.position.y = -0.8; // 飛行生物，數字在下方比較好瞄準
+        } else {
+            sprite.position.y = 2.0; // 地面生物，數字在上方
+        }
+        
         sprite.scale.set(1.5, 1.5, 1);
         this.group.add(sprite);
-
-        // 生成位置
-        const startZ = -40 - Math.random() * 20;
-        const startX = (Math.random() - 0.5) * 25; // 範圍大一點
-        this.group.position.set(startX, 0, startZ);
-        this.group.lookAt(0, 0, 0); 
-        
-        // 速度
-        const baseSpeed = this.type === 'rabbit' ? 8 : (this.type === 'fox' ? 7 : 5);
-        this.speed = baseSpeed + (level * 0.6); 
-        this.animTime = Math.random();
-        
-        this.scene.add(this.group);
     }
 
-    buildModel() {
+    buildGroundModel() {
         let mainColor;
-        
         if (this.type === 'boar') {
-            // --- 野豬 (深棕色) ---
             mainColor = 0x5D4037;
             const body = new THREE.Mesh(new THREE.BoxGeometry(1.2, 1, 1.8), new THREE.MeshPhongMaterial({color: mainColor}));
             body.position.y = 0.8;
             this.group.add(body);
-            
             const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 1), new THREE.MeshPhongMaterial({color: mainColor}));
             head.position.set(0, 1.0, 1.2);
             this.group.add(head);
-            
-            const tusk = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.3, 8), new THREE.MeshPhongMaterial({color: 0xffffff}));
-            tusk.rotation.x = Math.PI/4;
-            tusk.position.set(0.25, 0.8, 1.6);
-            this.group.add(tusk);
-            
-            // 腿
-            const legGeo = new THREE.BoxGeometry(0.2, 0.6, 0.2);
-            [[0.4, 0.3, 0.6], [-0.4, 0.3, 0.6], [0.4, 0.3, -0.6], [-0.4, 0.3, -0.6]].forEach(pos => {
-                const leg = new THREE.Mesh(legGeo, new THREE.MeshPhongMaterial({color: mainColor}));
-                leg.position.set(...pos);
-                this.group.add(leg);
-            });
-
         } else if (this.type === 'rabbit') {
-            // --- 野兔 (灰白色) ---
             mainColor = 0xDCDCDC;
             const body = new THREE.Mesh(new THREE.SphereGeometry(0.6, 16, 16), new THREE.MeshPhongMaterial({color: mainColor}));
             body.scale.set(1, 0.8, 1.2);
             body.position.y = 0.5;
             this.group.add(body);
-            
             const head = new THREE.Mesh(new THREE.SphereGeometry(0.35, 16, 16), new THREE.MeshPhongMaterial({color: mainColor}));
             head.position.set(0, 0.8, 0.6);
             this.group.add(head);
-            
-            // 長耳朵
-            const earGeo = new THREE.CapsuleGeometry(0.08, 0.5, 4, 8);
-            const ear1 = new THREE.Mesh(earGeo, new THREE.MeshPhongMaterial({color: mainColor}));
+            const ear1 = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 0.5, 4, 8), new THREE.MeshPhongMaterial({color: mainColor}));
             ear1.position.set(0.15, 1.2, 0.5);
             ear1.rotation.x = -0.2;
             this.group.add(ear1);
             const ear2 = ear1.clone();
             ear2.position.set(-0.15, 1.2, 0.5);
             this.group.add(ear2);
-            
-            // 小尾巴
-            const tail = new THREE.Mesh(new THREE.SphereGeometry(0.15), new THREE.MeshPhongMaterial({color: 0xffffff}));
-            tail.position.set(0, 0.4, -0.6);
-            this.group.add(tail);
-
-        } else {
-            // --- 狐狸 (橘色) ---
-            mainColor = 0xFF8C00; // DarkOrange
-            const whiteMat = new THREE.MeshPhongMaterial({color: 0xFFFFFF});
-            
+        } else { // Fox
+            mainColor = 0xFF8C00;
             const body = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.6, 1.2), new THREE.MeshPhongMaterial({color: mainColor}));
             body.position.y = 0.6;
             this.group.add(body);
-            
             const head = new THREE.Mesh(new THREE.ConeGeometry(0.4, 0.8, 16), new THREE.MeshPhongMaterial({color: mainColor}));
             head.rotation.x = -Math.PI/2;
             head.position.set(0, 1.0, 0.8);
             this.group.add(head);
-            
-            // 大尾巴
             const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.8, 4, 8), new THREE.MeshPhongMaterial({color: mainColor}));
             tail.rotation.x = Math.PI/3;
             tail.position.set(0, 0.8, -0.8);
             this.group.add(tail);
-            const tailTip = new THREE.Mesh(new THREE.SphereGeometry(0.2), whiteMat);
-            tailTip.position.set(0, 1.15, -1.05);
-            this.group.add(tailTip);
         }
+    }
+
+    buildSkyModel() {
+        let color;
+        // 身體
+        if (this.type === 'eagle') {
+            color = 0x8B4513; // SaddleBrown
+        } else { // owl
+            color = 0x708090; // SlateGray
+        }
+        
+        const bodyGeo = new THREE.ConeGeometry(0.4, 1.2, 8);
+        const body = new THREE.Mesh(bodyGeo, new THREE.MeshPhongMaterial({color: color}));
+        body.rotation.x = Math.PI / 2;
+        this.group.add(body);
+        
+        // 頭部
+        const headGeo = new THREE.SphereGeometry(0.35, 16, 16);
+        const head = new THREE.Mesh(headGeo, new THREE.MeshPhongMaterial({color: this.type === 'eagle' ? 0xFFFFFF : color}));
+        head.position.z = 0.6;
+        head.position.y = 0.2;
+        this.group.add(head);
+        
+        // 嘴巴
+        const beakGeo = new THREE.ConeGeometry(0.1, 0.3, 8);
+        const beak = new THREE.Mesh(beakGeo, new THREE.MeshPhongMaterial({color: 0xFFD700}));
+        beak.rotation.x = Math.PI / 2;
+        beak.position.z = 0.9;
+        beak.position.y = 0.15;
+        this.group.add(beak);
+
+        // 翅膀 (用於動畫)
+        const wingGeo = new THREE.BoxGeometry(1.2, 0.1, 0.6);
+        const wingMat = new THREE.MeshPhongMaterial({color: color});
+        
+        // 左翅
+        const leftWing = new THREE.Mesh(wingGeo, wingMat);
+        leftWing.position.set(-0.6, 0.2, 0);
+        // 設定旋轉中心在靠近身體的一側
+        leftWing.geometry.translate(-0.6, 0, 0); 
+        leftWing.position.set(0, 0.1, 0);
+        this.group.add(leftWing);
+        this.wings.push(leftWing);
+
+        // 右翅
+        const rightWing = new THREE.Mesh(wingGeo, wingMat);
+        // 設定旋轉中心
+        rightWing.geometry.translate(0.6, 0, 0);
+        rightWing.position.set(0, 0.1, 0);
+        this.group.add(rightWing);
+        this.wings.push(rightWing);
     }
 
     update(dt) {
         if (!this.active) return;
         
-        // 移動：跑向 (0,0,0)
-        const dir = this.group.position.clone().negate().normalize(); 
-        dir.y = 0;
-        
-        this.group.position.add(dir.multiplyScalar(this.speed * dt));
-        this.group.lookAt(0, 0, 0); 
-        
-        // 跑步動畫 (上下跳動)
-        this.animTime += dt * 12;
-        const bounce = Math.abs(Math.sin(this.animTime)) * (this.type === 'rabbit' ? 0.4 : 0.15);
-        this.group.position.y = bounce;
+        // 動畫時間
+        this.animTime += dt * (this.domain === 'sky' ? 10 : 12);
 
-        // 距離檢測
-        const dist = this.group.position.length();
+        // 移動邏輯
+        if (this.domain === 'ground') {
+            // 地面：跑向 (0,0,0)
+            const dir = this.group.position.clone().negate().normalize(); 
+            dir.y = 0;
+            this.group.position.add(dir.multiplyScalar(this.speed * dt));
+            this.group.lookAt(0, 0, 0); 
+            
+            // 跳動
+            const bounce = Math.abs(Math.sin(this.animTime)) * (this.type === 'rabbit' ? 0.4 : 0.15);
+            this.group.position.y = bounce;
 
-        // 到達玩家面前 (Z 約為 0, 實際上靠近相機)
-        if (dist < 3.0) {
-            return "reached_player";
+            // 碰撞/到達檢測 (Z軸距離縮短)
+            if (this.group.position.length() < 3.0) return "reached_player";
+
+        } else {
+            // 天空：飛越玩家頭頂
+            // 目標點是玩家身後的一點 (0, 高度, 20)
+            const target = new THREE.Vector3(0, this.group.position.y, 20); 
+            const dir = target.sub(this.group.position).normalize();
+            
+            this.group.position.add(dir.multiplyScalar(this.speed * dt));
+            this.group.lookAt(0, this.group.position.y, 50); // 稍微看向遠方
+            
+            // 拍動翅膀
+            const flap = Math.sin(this.animTime) * 0.5;
+            // 左翅轉動
+            this.wings[0].rotation.z = flap;
+            // 右翅轉動 (反向)
+            this.wings[1].rotation.z = -flap;
+            
+            // 上下浮動
+            this.group.position.y += Math.sin(this.animTime * 0.5) * 0.02;
+
+            // 飛行判定：如果 Z > 5 (飛過相機位置)，就算到達
+            if (this.group.position.z > 5.0) return "reached_player";
         }
-        return "running";
+
+        return "moving";
     }
 
     destroy() {
         this.active = false;
         this.scene.remove(this.group);
+        // 清理 geometry/material 建議在大型專案做，這裡簡化
     }
 }
 
@@ -631,7 +682,7 @@ class GameApp {
         this.score = 0;
         this.lives = 3;
         this.level = 1;
-        this.bestScore = localStorage.getItem('mathHunterBest') || 0;
+        this.bestScore = localStorage.getItem('mathHunterSkyBest') || 0;
         this.spawnTimer = 0;
         
         this.mouse = new THREE.Vector2();
@@ -656,7 +707,7 @@ class GameApp {
     initThree() {
         this.container = document.getElementById('canvas-container');
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.Fog(0x87CEEB, 15, 50);
+        this.scene.fog = new THREE.Fog(0x87CEEB, 20, 80); // 霧稍微調遠一點適應天空
         
         // 地板
         const groundGeo = new THREE.PlaneGeometry(200, 200);
@@ -690,7 +741,7 @@ class GameApp {
         }
 
         // Camera
-        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+        this.camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 200);
         this.camera.position.set(0, 1.6, 0); 
         this.camera.lookAt(0, 1.6, -10);
 
@@ -800,10 +851,13 @@ class GameApp {
             
             for (let j = this.animals.length - 1; j >= 0; j--) {
                 const animal = this.animals[j];
+                // 3D 距離檢測，對天空目標同樣有效
                 const dist = bolt.group.position.distanceTo(animal.group.position);
                 
-                // 碰撞判定
-                if (dist < 1.8) {
+                // 碰撞判定範圍 (給天空單位大一點點的判定，比較好射)
+                const hitRadius = animal.domain === 'sky' ? 2.5 : 1.8;
+                
+                if (dist < hitRadius) {
                     this.handleHit(animal);
                     animal.destroy();
                     this.animals.splice(j, 1);
@@ -821,37 +875,37 @@ class GameApp {
 
     handleHit(animal) {
         if (animal.isPrime) {
-            // 正確射中質數 -> 加分
+            // 正確射中質數
             this.score += 10;
             this.audio.playCorrect();
-            this.showMessage(`狩獵成功! ${animal.number}`, '#00ff00');
+            this.showMessage(`精準命中! ${animal.number}`, '#00ff00');
             
             if (Math.floor(this.score / 100) + 1 > this.level) {
                 this.level++;
                 this.showMessage(`LEVEL UP! ${this.level}`, '#00ffff');
             }
         } else {
-            // 射中非質數 -> 濫殺無辜，扣分 (不扣血，但扣分作為懲罰)
+            // 射中非質數 (扣分)
             this.score = Math.max(0, this.score - 5);
             this.audio.playWrong();
-            this.showMessage(`不要射非質數! -5`, '#FFA500');
+            this.showMessage(`不可濫殺! -5`, '#FFA500');
         }
         this.updateUI();
     }
     
     handleAnimalReachPlayer(animal) {
         if (animal.isPrime) {
-            // 質數跑掉了 -> 任務失敗 (漏掉獵物)，扣血
+            // 質數跑掉了/飛過了 -> 扣血
             this.lives--;
             this.audio.playHit();
             this.renderer.domElement.style.filter = 'brightness(3) sepia(1) hue-rotate(-50deg)';
             setTimeout(() => { this.renderer.domElement.style.filter = 'none'; }, 100);
             
-            this.showMessage(`漏掉獵物! ${animal.number}`, '#ff0000');
+            const action = animal.domain === 'sky' ? '飛過防線' : '衝破防線';
+            this.showMessage(`漏掉獵物! ${animal.number} ${action}`, '#ff0000');
             if (this.lives <= 0) this.gameOver();
         } else {
-            // 非質數跑掉了 -> 安全通過，沒事
-            // 可以加一點音效表示"安全"
+            // 非質數 -> 安全通過
             this.showMessage(`安全通過`, '#87CEEB');
         }
         this.updateUI();
@@ -861,7 +915,7 @@ class GameApp {
         this.mode = 'gameover';
         if (this.score > this.bestScore) {
             this.bestScore = this.score;
-            localStorage.setItem('mathHunterBest', this.bestScore);
+            localStorage.setItem('mathHunterSkyBest', this.bestScore);
         }
         this.ui.finalScore.innerText = this.score;
         this.ui.gameOverScreen.classList.remove('hidden');
@@ -888,7 +942,7 @@ class GameApp {
 
             if (this.spawnTimer <= 0) {
                 this.animals.push(new Animal(this.scene, this.level));
-                const spawnInterval = Math.max(0.6, 2.0 - (this.level * 0.15));
+                const spawnInterval = Math.max(0.6, 2.0 - (this.level * 0.12));
                 this.spawnTimer = spawnInterval;
             }
 
